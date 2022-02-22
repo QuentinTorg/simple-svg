@@ -282,6 +282,58 @@ namespace svg
         std::string family;
     };
 
+    class Rotate : public Serializeable
+    {
+    public:
+        Rotate()
+            : angle(0.), x(0.), y(0.) { }
+        Rotate(const double angle, const double x=0., const double y=0.)
+            : angle(angle), x(x), y(y) { }
+        std::string toString(Layout const & layout) const
+        {
+            std::stringstream ss;
+            ss << "rotate(" << angle << "," << translateX(x, layout)
+                                     << "," << translateY(y, layout) << ")";
+            return ss.str();
+        }
+    private:
+        double angle;
+        double x;
+        double y;
+    };
+
+    class Translate : public Serializeable
+    {
+    public:
+        Translate(const double x=0., const double y=0.)
+            : x(x), y(y) { }
+        std::string toString(Layout const & layout) const
+        {
+            std::stringstream ss;
+            ss << "translate(" << translateX(x, layout) << "," << translateY(y, layout) << ")";
+            return ss.str();
+        }
+    private:
+        double x;
+        double y;
+    };
+
+    class Transform : public Serializeable
+    {
+    public:
+        Transform(const Rotate &rotate = Rotate(), const Translate &translate = Translate())
+            : translate(translate), rotate(rotate) { }
+        std::string toString(Layout const & layout) const
+        {
+            std::stringstream ss;
+            ss << attribute("transform", rotate.toString(layout) + " " + translate.toString(layout));
+            return ss.str();
+        }
+    private:
+        Translate translate;
+        Rotate rotate;
+    };
+
     class Shape : public Serializeable
     {
     public:
@@ -454,9 +506,9 @@ namespace svg
     {
     public:
        Path(Fill const & fill = Fill(), Stroke const & stroke = Stroke())
-          : Shape(fill, stroke) 
+          : Shape(fill, stroke)
        {  startNewSubPath(); }
-       Path(Stroke const & stroke = Stroke()) : Shape(Color::Transparent, stroke) 
+       Path(Stroke const & stroke = Stroke()) : Shape(Color::Transparent, stroke)
        {  startNewSubPath(); }
        Path & operator<<(Point const & point)
        {
@@ -547,14 +599,15 @@ namespace svg
     {
     public:
         Text(Point const & origin, std::string const & content, Fill const & fill = Fill(),
-             Font const & font = Font(), Stroke const & stroke = Stroke())
-            : Shape(fill, stroke), origin(origin), content(content), font(font) { }
+             Font const & font = Font(), Stroke const & stroke = Stroke(), const Transform &transform = Transform())
+            : Shape(fill, stroke), origin(origin), content(content), font(font), transform(transform){ }
         std::string toString(Layout const & layout) const
         {
             std::stringstream ss;
             ss << elemStart("text") << attribute("x", translateX(origin.x, layout))
                 << attribute("y", translateY(origin.y, layout))
                 << fill.toString(layout) << stroke.toString(layout) << font.toString(layout)
+                << transform.toString(layout)
                 << ">" << content << elemEnd("text");
             return ss.str();
         }
@@ -567,6 +620,7 @@ namespace svg
         Point origin;
         std::string content;
         Font font;
+        Transform transform;
     };
 
     // Sample charting class.
